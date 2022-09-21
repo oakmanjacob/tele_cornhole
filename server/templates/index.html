@@ -1,0 +1,45 @@
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<h1>Hello World!</h1>
+
+<a href="#" onclick="$.get('/controller/w')">Go Up</a>
+<a href="#" onclick="$.get('/controller/s')">Go Down</a>
+<a href="#" onclick="$.get('/controller/d')">Go Right</a>
+<a href="#" onclick="$.get('/controller/a')">Go Left</a>
+
+
+<script>
+
+var wDown = false;
+
+keys = {}
+
+setInterval(function() {
+    if (keys['w'] && !keys['s']) {
+        $.get('/controller/w');
+    }
+
+    if (!keys['w'] && keys['s']) {
+        $.get('/controller/s');
+    }
+
+    if (keys['a'] && !keys['d']) {
+        $.get('/controller/a');
+    }
+
+    if (!keys['a'] && keys['d']) {
+        $.get('/controller/d');
+    }
+}, 200);
+
+$(document).keydown(function (e) {
+    keys[e.key] = true;
+});
+
+$(document).keyup(function (e) {
+    delete keys[e.key];
+});
+
+</script>
