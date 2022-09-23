@@ -12,64 +12,50 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *xMotor = AFMS.getMotor(1);
 Adafruit_DCMotor *yMotor = AFMS.getMotor(2);
 
-int xTime = 0;
-int yTime = 0;
-
-
 // i2c
 Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
 
-#define LSM9DS1_SCK A5
-#define LSM9DS1_MISO 12
-#define LSM9DS1_MOSI A4
-#define LSM9DS1_XGCS 6
-#define LSM9DS1_MCS 5
-// You can also use software SPI
-//Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1(LSM9DS1_SCK, LSM9DS1_MISO, LSM9DS1_MOSI, LSM9DS1_XGCS, LSM9DS1_MCS);
-// Or hardware SPI! In this case, only CS pins are passed in
-//Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1(LSM9DS1_XGCS, LSM9DS1_MCS);
-double min = 0, max = 0;
-double input = 90; //[10] = {20,45,110,245,300,5,190,100, 80,  330};
-double reset_tilt = 0;
-bool tilt_in_range = false;
-double tilt_angle = 0;
+typedef struct _movement_angles
+{
+  double tilt_angle; 
+  double pan_angle;
+}Movement_Angles;
 
-double tilt_offset = 0;
 double error = 0.5;
+
+typedef enum _system_states
+{
+  STATE_DISENGAGED = 0,
+  STATE_GET_INPUT,
+  STATE_ARM_CANNON_HORIZONTAL,
+  STATE_ARM_CANNON_VERTICAL,
+  STATE_FIRE_CANNON,
+  MAX_STATES
+}System_states;
+
+System_states curr_state = STATE_DISENGAGED;
+
+typedef struct _user_input
+{
+  Movement_Angles user_angles; 
+  bool fire;
+}User_Input;
+
+User_Input input_data;
+
+Movement_Angles reset_angles;
 
 void setupSensor()
 {
   // 1.) Set the accelerometer range
   lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
-  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);
-  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_8G);
-  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_16G);
-  
+
   // 2.) Set the magnetometer sensitivity
-  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
-  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_8GAUSS);
-  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_12GAUSS);
-  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_16GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
 
   // 3.) Setup the gyroscope
-  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
-  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
-  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
-}
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
 
-void setup() {
-  
-  Serial.begin(115200);           // set up Serial library at 115200 bps
-
-  Serial.println("LSM9DS1 data read demo");
-
-   if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
-  // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
-    Serial.println("Could not find Motor Shield. Check wiring.");
-    while (1);
-  }
-  Serial.println("Motor Shield found.");
-  
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
@@ -78,107 +64,121 @@ void setup() {
   }
   Serial.println("Found LSM9DS1 9DOF");
 
-  // helper to just set the default scaling we want, see above!
+  Serial.println("Aceelerometer Intialized");
+
+}
+
+void setupSerial()
+{
+  Serial.begin(115200);           // set up Serial library at 115200 bps
+  
+  Serial.println("Serial Driver Intialized");
+}
+
+void setupHorizontalMotor()
+{
+    // Needs integration
+}
+
+void setupVerticalMotor()
+{
+  if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
+  // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
+    Serial.println("Could not find Motor Shield. Check wiring.");
+    while (1);
+  }
+  Serial.println("Vertical Motor Shield found.");
+}
+
+void setup() {
+
+  // Setup serial port
+  setupSerial();
+
+  // Setup Accelerometer Sensor
   setupSensor();
 
-  lsm.read();  /* ask it to read in the data */ 
+  // Setup Vertical Motor
+  setupVerticalMotor();
 
-  /* Get a new sensor event */ 
-  sensors_event_t a, m, g, temp;
+  // Setup Horizontal Motor
+  setupHorizontalMotor();
 
-  lsm.getEvent(&a, &m, &g, &temp); 
+  reset_angles.pan_angle  = 0, // TODO - Find experimentally and set value here
+  reset_angles.tilt_angle = 0, // TODO - Find experimentally and set value here
 
-  reset_tilt = atan2(a.acceleration.x, a.acceleration.y) * (180/3.141592);
-
-  Serial.print(" Reset tilt angle:"); Serial.print(reset_tilt);   Serial.println("deg");  
-
-  goToTiltAngle(0);
+  curr_state = STATE_DISENGAGED;
 }
-
-bool first_read = true;
 
 void loop() {
-  
-  // double pan_angle;
-  // double tilt_angle;
+  switch (curr_state)
+  {
+    case STATE_DISENGAGED:
+    {
+      bool status = false;
+        // TODO - Integrate Horizontal Homing
+        // status = goToPanAngle(reset_pan_angle);
 
-  // bool found = false;
- 
-  // lsm.read();  /* ask it to read in the data */ 
+        // Vertical Homing
+        
+        /* Get a new sensor event */
+        /* 
+        lsm.read();  
+        sensors_event_t a, m, g, temp;
+        lsm.getEvent(&a, &m, &g, &temp); 
+        reset_tilt = atan2(a.acceleration.x, a.acceleration.y) * (180/3.141592);
+        Serial.print(" Reset tilt angle:"); Serial.print(reset_tilt);   Serial.println("deg");
+        */  
 
-  // /* Get a new sensor event */ 
-  // sensors_event_t a, m, g, temp;
+      if (status == true) // TODO - Remove for test
+        status = goToTiltAngle(reset_angles.tilt_angle);
 
-  // lsm.getEvent(&a, &m, &g, &temp); 
+      if (status == true) curr_state = STATE_GET_INPUT;
+    }
+    break;
+    case STATE_GET_INPUT:
+    {
+       // To integrate
 
-  // /*Serial.print("Accel X: "); Serial.print(a.acceleration.x); Serial.print(" m/s^2");
-  // Serial.print("\tY: "); Serial.print(a.acceleration.y);     Serial.print(" m/s^2 ");
-  // Serial.print("\tZ: "); Serial.print(a.acceleration.z);     Serial.println(" m/s^2 ");
+       // Get Horizontal Angle Input
+       // set state to STATE_ARM_CANNON_HORIZONTAL
+       // Send response to app
 
-  // Serial.print("Gyro X: "); Serial.print(g.gyro.x);   Serial.print(" rad/s");
-  // Serial.print("\tY: "); Serial.print(g.gyro.y);      Serial.print(" rad/s");
-  // Serial.print("\tZ: "); Serial.print(g.gyro.z);      Serial.println(" rad/s");*/
+       // Get Vertical Angle Input
+       // set state to STATE_ARM_CANNON_VERTICAL
+       // Send response to app
 
-  // // Serial.print("Mag X: "); Serial.print(m.magnetic.x);   Serial.print(" uT");
-  // // Serial.print("\tY: "); Serial.print(m.magnetic.y);     Serial.print(" uT");
-  // //Serial.print("\tZ: "); Serial.print(m.magnetic.z);     Serial.println(" uT");
+       // Get Fire Input
+       // set state to STATE_FIRE_CANNON
+       // Send response to app
 
-  // tilt_angle = atan2(a.acceleration.x, a.acceleration.y) * (180/3.141592);
+    }
+    break;
+    case STATE_ARM_CANNON_VERTICAL:
+    {
+        bool status = false;
+        if( curr_state == STATE_GET_INPUT)
+        {
+          status = goToTiltAngle(input_data.user_angles.tilt_angle);
+        }
+    }
+    break;
+    case STATE_ARM_CANNON_HORIZONTAL:
+    {}
+    break;
+    case STATE_FIRE_CANNON:
+    {}
+    break;
+    default:
+    {
 
-  // pan_angle = atan2(m.magnetic.z, m.magnetic.x)* (180/3.141592);
-
-  // Serial.print(" Current tilt angle:"); Serial.print(tilt_angle);   Serial.println("deg"); 
-
-  // if ((tilt_angle <= (input + 5)) && (tilt_angle >= (input - 5)))
-  // {
-  //   tilt_in_range = true;
-  //   Serial.println(" Tilt angle in range!");
-  //   yMotor->setSpeed(0);
-  // }
-  // else
-  // {
-  //   tilt_in_range = false;
-  //   if(tilt_angle >= reset_tilt)
-  //   {
-  //     Serial.println("Need to tilt");
-
-  //     if (tilt_angle < (input))
-  //     {
-  //         // move motor up if it is not in motion already
-  //         if (yTime <= 0)
-  //         {
-  //           Serial.println("Going up");
-  //           moveUp();
-  //         }
-  //     }
-  //     else
-  //     {
-  //       // move motor down
-  //         if (yTime <= 0)
-  //         {
-  //           Serial.println("Going down");
-  //           moveDown();
-  //         }
-  //     }
-
-  //   }
-  // }
-
-  // // If motor is running, check if time is up
-  // if (yTime > 0) {
-  //   yTime-= 20;
-  // }
-  // else {
-  //   yMotor->setSpeed(0);
-  // }
-  // //Serial.print("Pan angle:"); Serial.print(pan_angle);   Serial.println("deg");
-  // //Serial.print("Tilt angle:"); Serial.print(tilt_angle);   Serial.println("deg");  
-  // delay(20);
+    }
+    break;
+  }
 
 }
 
-void goToTiltAngle(double target) {
-  target = target + tilt_offset;
+bool goToTiltAngle(double target) {
 
   /* Get a new sensor event */ 
   sensors_event_t a, m, g, temp;
@@ -203,16 +203,6 @@ void goToTiltAngle(double target) {
   while (abs(tilt_angle - target) > error);
 
   yMotor->setSpeed(0);
-}
 
-void moveUp() {
-  yTime = 250;
-  yMotor->run(BACKWARD);
-  yMotor->setSpeed(255);
-}
-
-void moveDown() {
-  yTime = 250;
-  yMotor->run(FORWARD);
-  yMotor->setSpeed(255);
+  return true;
 }
