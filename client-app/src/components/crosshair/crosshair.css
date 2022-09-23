@@ -1,0 +1,91 @@
+.crosshair-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    opacity: var(--dcc-crosshair-opacity);
+}
+
+.crosshair-container * {
+    background-color: var(--dcc-crosshair-color)
+}
+
+/* vertical axis */
+.vertical-axis {
+    width: 2px;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.vertical-axis > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    height: 100%;
+    width: 100%;
+}
+
+.vertical-axis > div:first-child {
+    flex-direction: column-reverse;
+}
+
+.vertical-axis > div > .tick {
+    width: 16px;
+    height: 2px;
+}
+
+.vertical-axis > div > .tick:nth-child(2n) {
+    width: 24px;
+}
+
+.vertical-axis > div > .tick:nth-child(4n) {
+    width: 36px;
+}
+
+/* horizontal axis */
+.horizontal-axis {
+    height: 2px;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.horizontal-axis > div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    height: 100%;
+    width: 100%;
+}
+
+.horizontal-axis > div:first-child {
+    flex-direction: row-reverse;
+}
+
+.horizontal-axis > div > .tick {
+    width: 2px;
+    height: 16px;
+}
+
+.horizontal-axis > div > .tick:nth-child(2n) {
+    height: 24px;
+}
+
+.horizontal-axis > div > .tick:nth-child(4n) {
+    height: 36px;
+}

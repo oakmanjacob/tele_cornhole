@@ -1,0 +1,15 @@
+input, button {
+    border: none;
+    border-radius: 10000px;
+    padding: 16px 24px;
+}
+
+button {
+    color: var(--dcc-font-0);
+    background: var(--dcc-bg-grad-1);
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+}

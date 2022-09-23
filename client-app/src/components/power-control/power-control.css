@@ -1,0 +1,18 @@
+.power-control-container {
+    position: absolute;
+    height: 100px;
+    width: 100px;
+    border: 2px solid var(--dcc-axis-control-color);
+    border-radius: 10000px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.power-control-circle {
+    height: 100%;
+    width: 100%;
+    background-color: var(--dcc-axis-control-color);
+    opacity: 0.6;
+    border-radius: 10000px;
+}
