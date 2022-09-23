@@ -6,8 +6,19 @@ control
 For use with the Adafruit Motor Shield v2
 ---->  http://www.adafruit.com/products/1438
 */
-
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_LSM9DS1.h>
+#include <Adafruit_Sensor.h>
 #include <Adafruit_MotorShield.h>
+
+Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
+
+#define LSM9DS1_SCK A5
+#define LSM9DS1_MISO 12
+#define LSM9DS1_MOSI A4
+#define LSM9DS1_XGCS 6
+#define LSM9DS1_MCS 5
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
@@ -37,10 +48,21 @@ void setup() {
   Serial.begin(115200);           // set up Serial library at 115200 bps
   Serial.println("Adafruit Motorshield v2 - DC Motor test!");
 
+  if (!lsm.begin())
+  {
+    Serial.println("Oops ... unable to initialize the LSM9DS1. Check your wiring!");
+    while (1);
+  }
+  Serial.println("Found LSM9DS1 9DOF");
+  
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
+
   pinMode(cannon, OUTPUT);
   digitalWrite(cannon, LOW);
 
-  pinMode(limitSwitch, INPUT);
+  pinMode(limitSwitch, INPUT_PULLUP);
 
   if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
   // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
