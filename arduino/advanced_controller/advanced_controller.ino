@@ -34,15 +34,15 @@ Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
 #define MOTOR_STEPS 400  //Steps per revolution
 #define RPM 120
 
-#define MAX_ELEVATION 45
-#define MIN_ELEVATION -45
+#define MAX_ELEVATION 50
+#define MIN_ELEVATION -40
 
 //_____________________________________________________________________________________
 //                        MOTOR GLOBALS
 //_____________________________________________________________________________________
 
 const double GEAR_RATIO = 70.5882;  //for every 70.5882 rotations of the stepper motor, the gantry will rotate once
-const double HOME_POSITION = -30.5; //degrees from straight ahead
+const double HOME_POSITION = -48; //degrees from straight ahead
 
 double gantryPosition = 0; //current position of the gantry (degrees) 
 
@@ -52,7 +52,7 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *yMotor = AFMS.getMotor(1);
 
 double tilt_offset = 0;
-double error_bound = 0.5;
+double error_bound = 1;
 
 //_____________________________________________________________________________________
 //                        CANNON DEFININITIONS
@@ -198,6 +198,6 @@ int goToElevation(double target) {
 
 int fire() {
   digitalWrite(CANNON_PIN, HIGH);
-  delay(1000);
+  delay(500);
   digitalWrite(CANNON_PIN, LOW);
 }
