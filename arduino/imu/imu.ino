@@ -3,73 +3,96 @@
 #include <Adafruit_LSM9DS1.h>
 #include <Adafruit_Sensor.h>  // not used in this demo but required!
 #include <math.h>
+#include <BasicStepperDriver.h>
 #include <Adafruit_MotorShield.h>
 
-// Create the motor shield object with the default I2C address
+//_____________________________________________________________________________________
+//                        STEPPER DEFININITIONS
+//_____________________________________________________________________________________
+
+#define LIM_SW 10        //Limit switch pin
+#define DIR 4            //Direction pin
+#define STEP 3           //Step pin
+
+#define MOTOR_STEPS 400  //Steps per revolution
+#define RPM 120
+
+#define MAX_ELEVATION 50
+#define MIN_ELEVATION -40
+
+//_____________________________________________________________________________________
+//                        MOTOR GLOBALS
+//_____________________________________________________________________________________
+
+const double GEAR_RATIO = 70.5882;  //for every 70.5882 rotations of the stepper motor, the gantry will rotate once
+const double HOME_POSITION = -48; //degrees from straight ahead
+
+double gantryPosition = 0; //current position of the gantry (degrees) 
+
+BasicStepperDriver stepper(MOTOR_STEPS, DIR, STEP);
+
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-
-// Select which 'port' M1, M2, M3 or M4. In this case, M1
-Adafruit_DCMotor *xMotor = AFMS.getMotor(1);
-Adafruit_DCMotor *yMotor = AFMS.getMotor(2);
-
-int xTime = 0;
-int yTime = 0;
-
-
-// i2c
-Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
-
-#define LSM9DS1_SCK A5
-#define LSM9DS1_MISO 12
-#define LSM9DS1_MOSI A4
-#define LSM9DS1_XGCS 6
-#define LSM9DS1_MCS 5
-// You can also use software SPI
-//Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1(LSM9DS1_SCK, LSM9DS1_MISO, LSM9DS1_MOSI, LSM9DS1_XGCS, LSM9DS1_MCS);
-// Or hardware SPI! In this case, only CS pins are passed in
-//Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1(LSM9DS1_XGCS, LSM9DS1_MCS);
-double min = 0, max = 0;
-double input = 90; //[10] = {20,45,110,245,300,5,190,100, 80,  330};
-double reset_tilt = 0;
-bool tilt_in_range = false;
-double tilt_angle = 0;
+Adafruit_DCMotor *yMotor = AFMS.getMotor(1);
 
 double tilt_offset = 0;
-double error = 0.5;
+double error = 2;
 
+//_____________________________________________________________________________________
+//                        CANNON DEFININITIONS
+//_____________________________________________________________________________________
+
+#define CANNON_PIN 8
+
+//_____________________________________________________________________________________
+//                        IMU GLOBALS
+//_____________________________________________________________________________________
+Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
+
+
+typedef struct _movement_angles
+{
+  double tilt_angle; 
+  double pan_angle;
+}Movement_Angles;
+
+
+
+typedef enum _system_states
+{
+  STATE_DISENGAGED = 0,
+  STATE_GET_INPUT,
+  STATE_ARM_CANNON_HORIZONTAL,
+  STATE_ARM_CANNON_VERTICAL,
+  STATE_FIRE_CANNON,
+  MAX_STATES
+}System_states;
+
+System_states curr_state = STATE_DISENGAGED;
+
+typedef struct _user_input
+{
+  Movement_Angles user_angles; 
+  bool fire;
+}User_Input;
+
+User_Input input_data;
+
+Movement_Angles reset_angles;
+
+//_____________________________________________________________________________________
+//                        Setup
+//_____________________________________________________________________________________
 void setupSensor()
 {
   // 1.) Set the accelerometer range
   lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
-  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_4G);
-  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_8G);
-  //lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_16G);
-  
+
   // 2.) Set the magnetometer sensitivity
-  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
-  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_8GAUSS);
-  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_12GAUSS);
-  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_16GAUSS);
+  //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
 
   // 3.) Setup the gyroscope
-  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
-  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_500DPS);
-  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
-}
+  //lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_2000DPS);
 
-void setup() {
-  
-  Serial.begin(115200);           // set up Serial library at 115200 bps
-
-  Serial.println("LSM9DS1 data read demo");
-
-   if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
-  // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
-    Serial.println("Could not find Motor Shield. Check wiring.");
-    while (1);
-  }
-  Serial.println("Motor Shield found.");
-  
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
@@ -78,108 +101,259 @@ void setup() {
   }
   Serial.println("Found LSM9DS1 9DOF");
 
-  // helper to just set the default scaling we want, see above!
+  Serial.println("Aceelerometer Intialized");
+
+}
+
+void setupSerial()
+{
+  Serial.begin(115200);           // set up Serial library at 115200 bps
+  
+  Serial.println("Serial Driver Intialized");
+}
+
+void setupHorizontalMotor()
+{
+  pinMode(LIM_SW, INPUT_PULLUP);
+  stepper.begin(RPM, 1);
+}
+
+void setupVerticalMotor()
+{
+  if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
+  // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
+    Serial.println("Could not find Motor Shield. Check wiring.");
+    while (1);
+  }
+  Serial.println("Vertical Motor Shield found.");
+}
+
+void setupCannon()
+{
+  pinMode(CANNON_PIN, OUTPUT);
+}
+
+void setup() {
+
+  // Setup serial port
+  setupSerial();
+
+  // Setup Cannon
+  setupCannon();
+
+  // Setup Accelerometer Sensor
   setupSensor();
 
-  lsm.read();  /* ask it to read in the data */ 
+  // Setup Vertical Motor
+  setupVerticalMotor();
 
-  /* Get a new sensor event */ 
-  sensors_event_t a, m, g, temp;
+  // Setup Stepper(Horizontal Motor)
+  setupHorizontalMotor();
 
-  lsm.getEvent(&a, &m, &g, &temp); 
+  reset_angles.pan_angle  = 0, // TODO - Find experimentally and set value here
+  reset_angles.tilt_angle = 0, // TODO - Find experimentally and set value here
 
-  reset_tilt = atan2(a.acceleration.x, a.acceleration.y) * (180/3.141592);
-
-  Serial.print(" Reset tilt angle:"); Serial.print(reset_tilt);   Serial.println("deg");  
-
-  goToTiltAngle(0);
+  curr_state = STATE_DISENGAGED;
 }
 
-bool first_read = true;
+void loop() 
+{
+  switch (curr_state)
+  {
+    case STATE_DISENGAGED:
+    {
+      bool status = false;
+      
+      status = homeStepper();
+      if (status == true)
+      {
+        status = goToTiltAngle(reset_angles.tilt_angle);
+        if (status == true)
+        {
+          curr_state = STATE_GET_INPUT;
+        }
+        else
+        {
+          Serial.println("Reset tilt angle failed!");
+        }
+      }
+      else
+      {
+        Serial.println("Reset pan angle failed!");
+      }
+    }
+    break;
 
-void loop() {
+    case STATE_GET_INPUT:
+    {
+      double buff;
+      char input;
+      if(Serial.available())
+      {
+        input = Serial.read();
+        switch (input) 
+        {
+          case 'x':
+          {
+            // Get Horizontal Angle Input
+            buff = 361;
+            while (buff > -HOME_POSITION || buff < HOME_POSITION) 
+            {
+              if(Serial.available() > 0)
+              {
+                buff = Serial.parseFloat();
+                Serial.print("pan angle input"); Serial.println(buff);
+                input_data.user_angles.pan_angle = buff;
+
+                while (Serial.available()) {
+                  Serial.read();  
+                }
+                // set state to STATE_ARM_CANNON_HORIZONTAL
+                curr_state = STATE_ARM_CANNON_HORIZONTAL;
+              }
+            }
+
+          }
+          break;
+
+          case 'y':
+          {
+            // Get Vertical Angle Input         
+            buff = 361;
+            while (buff > MAX_ELEVATION || buff < MIN_ELEVATION) 
+            {
+              if(Serial.available() > 0)
+              {
+                buff = Serial.parseFloat();
+                Serial.print("tilt angle input"); Serial.println(buff);
+                input_data.user_angles.tilt_angle = buff;
+
+                while (Serial.available()) {
+                  Serial.read();  
+                }
+
+                // set state to STATE_ARM_CANNON_VERTICAL
+                curr_state = STATE_ARM_CANNON_VERTICAL;
+              }
+            }
+          }
+          break;
+
+          case 'f':
+          {
+            curr_state = STATE_FIRE_CANNON;
+            while (Serial.available()) {
+              Serial.read();  
+            }
+          }
+          break;
+
+          default:
+          break;
+        }
+      }
+    }
+    break;
+
+    case STATE_ARM_CANNON_VERTICAL:
+    {
+        bool status = false;
+        status = goToTiltAngle(input_data.user_angles.tilt_angle);
+        if(status == true)
+        {
+            // Send response to app
+            Serial.write('1');
+            curr_state = STATE_GET_INPUT;
+        }
+        else
+        {
+            // Go home in case of trouble :)
+            // Send response to app
+            Serial.write('0');
+            curr_state = STATE_DISENGAGED;
+        }
+    }
+    break;
+
+    case STATE_ARM_CANNON_HORIZONTAL:
+    {
+        bool status = false;
+        status = goToRotation(input_data.user_angles.pan_angle);
+        if(status == true)
+        {
+            // Send response to app
+            Serial.write('1');
+            curr_state = STATE_GET_INPUT;
+        }
+        else
+        {
+            // Go home in case of trouble :)
+            // Send response to app
+            Serial.write('0');
+            curr_state = STATE_DISENGAGED;
+        }
+    }
+    break;
+
+    case STATE_FIRE_CANNON:
+    {
+        bool status = false;
+        
+        status = fire();
+        if(status == true)
+        {
+            // Send response to app
+            Serial.write('1');
+        }
+        else
+        {
+            // Go home in case of trouble :)
+            // Send response to app
+            Serial.write('0');
+        }
+        curr_state = STATE_DISENGAGED;
+    }
+    break;    
+    
+    default:
+    {
+
+    }
+    break;
+  }
+}
+
+bool homeStepper(void)
+{
+  bool isHome = false;
+
+  stepper.startRotate(-360 * GEAR_RATIO); //start moving the gantry towards the limit switch (degrees)
   
-  // double pan_angle;
-  // double tilt_angle;
-
-  // bool found = false;
+  while (!isHome)
+  {
+    if (digitalRead(LIM_SW) == LOW)
+    {
+        stepper.stop();
+        isHome = true;
+        Serial.println("LIMIT SWITCH REACHED");
+    }
+    stepper.nextAction();
+  }
  
-  // lsm.read();  /* ask it to read in the data */ 
-
-  // /* Get a new sensor event */ 
-  // sensors_event_t a, m, g, temp;
-
-  // lsm.getEvent(&a, &m, &g, &temp); 
-
-  // /*Serial.print("Accel X: "); Serial.print(a.acceleration.x); Serial.print(" m/s^2");
-  // Serial.print("\tY: "); Serial.print(a.acceleration.y);     Serial.print(" m/s^2 ");
-  // Serial.print("\tZ: "); Serial.print(a.acceleration.z);     Serial.println(" m/s^2 ");
-
-  // Serial.print("Gyro X: "); Serial.print(g.gyro.x);   Serial.print(" rad/s");
-  // Serial.print("\tY: "); Serial.print(g.gyro.y);      Serial.print(" rad/s");
-  // Serial.print("\tZ: "); Serial.print(g.gyro.z);      Serial.println(" rad/s");*/
-
-  // // Serial.print("Mag X: "); Serial.print(m.magnetic.x);   Serial.print(" uT");
-  // // Serial.print("\tY: "); Serial.print(m.magnetic.y);     Serial.print(" uT");
-  // //Serial.print("\tZ: "); Serial.print(m.magnetic.z);     Serial.println(" uT");
-
-  // tilt_angle = atan2(a.acceleration.x, a.acceleration.y) * (180/3.141592);
-
-  // pan_angle = atan2(m.magnetic.z, m.magnetic.x)* (180/3.141592);
-
-  // Serial.print(" Current tilt angle:"); Serial.print(tilt_angle);   Serial.println("deg"); 
-
-  // if ((tilt_angle <= (input + 5)) && (tilt_angle >= (input - 5)))
-  // {
-  //   tilt_in_range = true;
-  //   Serial.println(" Tilt angle in range!");
-  //   yMotor->setSpeed(0);
-  // }
-  // else
-  // {
-  //   tilt_in_range = false;
-  //   if(tilt_angle >= reset_tilt)
-  //   {
-  //     Serial.println("Need to tilt");
-
-  //     if (tilt_angle < (input))
-  //     {
-  //         // move motor up if it is not in motion already
-  //         if (yTime <= 0)
-  //         {
-  //           Serial.println("Going up");
-  //           moveUp();
-  //         }
-  //     }
-  //     else
-  //     {
-  //       // move motor down
-  //         if (yTime <= 0)
-  //         {
-  //           Serial.println("Going down");
-  //           moveDown();
-  //         }
-  //     }
-
-  //   }
-  // }
-
-  // // If motor is running, check if time is up
-  // if (yTime > 0) {
-  //   yTime-= 20;
-  // }
-  // else {
-  //   yMotor->setSpeed(0);
-  // }
-  // //Serial.print("Pan angle:"); Serial.print(pan_angle);   Serial.println("deg");
-  // //Serial.print("Tilt angle:"); Serial.print(tilt_angle);   Serial.println("deg");  
-  // delay(20);
-
+  gantryPosition = HOME_POSITION;
+  return true;
 }
 
-void goToTiltAngle(double target) {
-  target = target + tilt_offset;
+bool goToRotation(double newGantryPosition)
+{
+  double movementAmount = (newGantryPosition - gantryPosition) * GEAR_RATIO;
+  stepper.rotate(movementAmount);
+  gantryPosition = newGantryPosition;
+  return true;
+}
 
+bool goToTiltAngle(double target) 
+{
   /* Get a new sensor event */ 
   sensors_event_t a, m, g, temp;
   double tilt_angle;
@@ -188,7 +362,7 @@ void goToTiltAngle(double target) {
     lsm.read();  /* ask it to read in the data */ 
     lsm.getEvent(&a, &m, &g, &temp); 
     tilt_angle = atan2(a.acceleration.x, a.acceleration.y) * (180/3.141592);
-    Serial.print(" Current tilt angle:"); Serial.print(tilt_angle);   Serial.println("deg");
+    //Serial.print(" Current tilt angle:"); Serial.print(tilt_angle);   Serial.println("deg");
 
     if (tilt_angle > target) {
       yMotor->run(FORWARD);
@@ -198,21 +372,18 @@ void goToTiltAngle(double target) {
       yMotor->run(BACKWARD);
       yMotor->setSpeed(255);
     }
-    delay(20);
+    delay(50);
   }
   while (abs(tilt_angle - target) > error);
 
   yMotor->setSpeed(0);
+
+  return true;
 }
 
-void moveUp() {
-  yTime = 250;
-  yMotor->run(BACKWARD);
-  yMotor->setSpeed(255);
-}
-
-void moveDown() {
-  yTime = 250;
-  yMotor->run(FORWARD);
-  yMotor->setSpeed(255);
+bool fire() 
+{
+  digitalWrite(CANNON_PIN, HIGH);
+  delay(1000);
+  digitalWrite(CANNON_PIN, LOW);
 }
