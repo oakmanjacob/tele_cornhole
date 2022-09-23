@@ -32,7 +32,15 @@ setInterval(function() {
     if (!keys['a'] && keys['d']) {
         $.get('/controller/d');
     }
-}, 200);
+
+    if (keys[' ']) {
+        $.get('/fire');
+    }
+
+    if (keys['z']) {
+        $.get('/zero');
+    }
+}, 150);
 
 $(document).keydown(function (e) {
     keys[e.key] = true;

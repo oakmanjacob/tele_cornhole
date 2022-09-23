@@ -18,11 +18,29 @@ Adafruit_DCMotor *yMotor = AFMS.getMotor(2);
 char input;
 
 int xTime = 0;
+int xDirection = RELEASE;
 int yTime = 0;
+int yDirection = RELEASE;
+int stepTime = 200;
+
+int limitSwitch = 10;
+
+int cannon = 8;
+int cannonTime = 0;
+
+int LEFT = FORWARD;
+int RIGHT = BACKWARD;
+int UP = BACKWARD;
+int DOWN = FORWARD;
 
 void setup() {
   Serial.begin(115200);           // set up Serial library at 115200 bps
   Serial.println("Adafruit Motorshield v2 - DC Motor test!");
+
+  pinMode(cannon, OUTPUT);
+  digitalWrite(cannon, LOW);
+
+  pinMode(limitSwitch, INPUT);
 
   if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
   // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
@@ -34,6 +52,12 @@ void setup() {
 }
 
 void loop() {
+  int switchValue = digitalRead(limitSwitch);
+  if (xDirection == LEFT && switchValue == HIGH) {
+    xMotor->setSpeed(0);
+    xTime = 0;  
+  }
+  
   if(Serial.available()){
     input = Serial.read();
     bool found = true;
@@ -51,8 +75,19 @@ void loop() {
         moveRight();
         break;
       case 'a':
+        if (switchValue == HIGH) {
+          break;
+        }
         Serial.println("Going left");
         moveLeft();
+        break;
+      case 'f':
+        Serial.println("Firing");
+        fire();
+        break;
+      case 'z':
+        Serial.println("Finding Zero");
+        findZero();
         break;
       default:
         found = false;
@@ -76,29 +111,67 @@ void loop() {
   else {
     xMotor->setSpeed(0);
   }
+
+  if (cannonTime > 0) {
+    cannonTime--;
+  }
+  else {
+    digitalWrite(cannon, LOW);  
+  }
   delay(1);
 }
 
+void fire() {
+  digitalWrite(cannon, HIGH);
+  cannonTime = 500;
+}
+
 void moveUp() {
-  yTime = 250;
-  yMotor->run(BACKWARD);
+  yTime = stepTime;
+  yMotor->run(UP);
+  yDirection = UP;
   yMotor->setSpeed(255);
 }
 
 void moveDown() {
-  yTime = 250;
-  yMotor->run(FORWARD);
+  yTime = stepTime;
+  yMotor->run(DOWN);
+  yDirection = DOWN;
   yMotor->setSpeed(255);
 }
 
 void moveRight() {
-  xTime = 250;
-  xMotor->run(BACKWARD);
+  xTime = stepTime;
+  xMotor->run(RIGHT);
+  xDirection = RIGHT;
   xMotor->setSpeed(255);
 }
 
 void moveLeft() {
-  xTime = 250;
-  xMotor->run(FORWARD);
+  xTime = stepTime;
+  xMotor->run(LEFT);
+  xDirection = LEFT;
   xMotor->setSpeed(255);
+}
+
+void clearAll() {
+    xTime = 0;
+    yTime = 0;
+    xMotor->setSpeed(0);  
+    yMotor->setSpeed(0);
+}
+
+void findZero() {
+  clearAll();
+  xMotor->run(LEFT);
+  xMotor->setSpeed(100);
+
+  while (digitalRead(limitSwitch) == LOW) {
+    delay(1);  
+  }
+
+  while(Serial.available()){
+    Serial.read();
+  }
+  xMotor->setSpeed(0);
 }
