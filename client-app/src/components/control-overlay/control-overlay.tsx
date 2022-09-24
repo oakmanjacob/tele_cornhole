@@ -15,7 +15,7 @@ const boundY = (deg: number) => {
 }
 
 const boundX = (deg: number) => {
-    return Math.max(-48, Math.min(48))
+    return Math.max(-48, Math.min(48, deg))
 }
 
 // oscillator
@@ -51,9 +51,8 @@ export const ControlOverlay: React.FC = () => {
                 // Send appropriate request, set to none while waiting, set to next
                 switch (degreesOfFreedom[iDOF]) {
                     case ControlEmbedding.Yaw:
-                        // axios.get('/xrot...').then(if 200 => increment iDOF again)
                         setIDOF(iDOF + 1)
-                        axios.get(`${baseURL}/xrot/${yaw}`, { timeout: 60000 }).then((value) => {
+                        axios.get(`${baseURL}/xrot/${boundX(Math.round(yaw))}`, { timeout: 60000 }).then((value) => {
                             console.log(value);
                             if(value.status === 200) {
                                 setIDOF(iDOF + 2)
@@ -61,9 +60,8 @@ export const ControlOverlay: React.FC = () => {
                         })
                         break;
                     case ControlEmbedding.Pitch:
-                        // axios.get('/yrot...').then(...)
                         setIDOF(iDOF + 1)
-                        axios.get(`${baseURL}/yrot/${-pitch + 35}`, { timeout: 60000 }).then((value) => {
+                        axios.get(`${baseURL}/yrot/${boundY(Math.round(-pitch + 30))}`, { timeout: 60000 }).then((value) => {
                             console.log(value);
                             if(value.status === 200) {
                                 setIDOF(iDOF + 2)
@@ -71,12 +69,11 @@ export const ControlOverlay: React.FC = () => {
                         })
                         break;
                     case ControlEmbedding.Power:
-                        // axios.get('/fire').then(...)
                         setIDOF(iDOF + 1)
                         axios.get(`${baseURL}/fire`, { timeout: 60000 }).then((value) => {
                             console.log(value);
                             if(value.status === 200) {
-                                // setIDOF(iDOF + 2)
+                                setIDOF(iDOF + 2)
                             }
                         })
                         break;
@@ -84,14 +81,6 @@ export const ControlOverlay: React.FC = () => {
                     default:
                         break;
                 }
-                // console.log('Space');
-                // if (iDOF === degreesOfFreedom.length - 1) {
-                //     // TODO: nope
-                //     console.log(`Send coords to server: (${yaw}, ${pitch}, ${power})`)
-                // } else if (iDOF >= degreesOfFreedom.length) {
-                //     return;
-                // }
-                // setIDOF(iDOF + 1);
                 break;
     
         }
@@ -108,10 +97,8 @@ export const ControlOverlay: React.FC = () => {
     return (
         <div style={controlOverlayContainerStyles}>
             <div style={yawControlStyles}><AngleControl theta={yaw}/></div>
-            {/* <h3 style={yawLabelStyles}>Yaw angle</h3> */}
             {iDOF >= 2 && <>
                 <div style={pitchControlStyle}><AngleControl theta={pitch}/></div>
-                {/* <h3 style={pitchLabelStyles}>Pitch angle</h3> */}
             </>}
             {iDOF >= 4 && <div style={linearPowerControlStyle}><LinearPowerControl percentPower={power} /></div>}
             {iDOF >= 5 && <button onClick={() => setIDOF(0)} style={{ right: '24px', top: '24px', position: 'absolute', zIndex: '3'}}>Reset</button>}

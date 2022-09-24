@@ -13,8 +13,8 @@ function App() {
     <div className='app-container'>
       <BrowserRouter>
         <Routes>
-          <Route path="*" element={<Login />} />
-          <Route path="control" element={<Control />} />
+          <Route path="*" element={<Control />} />
+          <Route path="login" element={<Login />} />
           <Route path="waiting" element={<Waiting />} />
         </Routes>
       </BrowserRouter>
