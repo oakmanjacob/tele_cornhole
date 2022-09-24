@@ -35,7 +35,7 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *yMotor = AFMS.getMotor(1);
 
 double tilt_offset = 0;
-double error = 2;
+double error = 3;
 
 //_____________________________________________________________________________________
 //                        CANNON DEFININITIONS
@@ -186,10 +186,10 @@ void loop()
 
     case STATE_GET_INPUT:
     {
-      double buff;
-      char input;
       if(Serial.available())
       {
+        double buff;
+        char input;
         input = Serial.read();
         switch (input) 
         {
