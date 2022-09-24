@@ -389,6 +389,6 @@ bool goToTiltAngle(double target)
 bool fire() 
 {
   digitalWrite(CANNON_PIN, HIGH);
-  delay(1000);
+  delay(500);
   digitalWrite(CANNON_PIN, LOW);
 }
