@@ -207,7 +207,7 @@ void loop()
               if(Serial.available() > 0)
               {
                 buff = Serial.parseFloat();
-                Serial.print("pan angle input"); Serial.println(buff);
+                //Serial.print("pan angle input"); Serial.println(buff);
                 input_data.user_angles.pan_angle = buff;
 
                 while (Serial.available()) {
@@ -230,7 +230,7 @@ void loop()
               if(Serial.available() > 0)
               {
                 buff = Serial.parseFloat();
-                Serial.print("tilt angle input"); Serial.println(buff);
+                //Serial.print("tilt angle input"); Serial.println(buff);
                 input_data.user_angles.tilt_angle = buff;
 
                 while (Serial.available()) {
