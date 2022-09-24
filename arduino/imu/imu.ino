@@ -85,7 +85,7 @@ Movement_Angles reset_angles;
 void setupSensor()
 {
   // 1.) Set the accelerometer range
-  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+  Serial.println("Enter setup sensor");
 
   // 2.) Set the magnetometer sensitivity
   //lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
@@ -99,6 +99,10 @@ void setupSensor()
     Serial.println("Oops ... unable to initialize the LSM9DS1. Check your wiring!");
     while (1);
   }
+
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+
+  Serial.println("LSM begin done");
   Serial.println("Found LSM9DS1 9DOF");
 
   Serial.println("Aceelerometer Intialized");
@@ -108,8 +112,9 @@ void setupSensor()
 void setupSerial()
 {
   Serial.begin(115200);           // set up Serial library at 115200 bps
-  
+  delay(3000);
   Serial.println("Serial Driver Intialized");
+  
 }
 
 void setupHorizontalMotor()
@@ -202,7 +207,7 @@ void loop()
               if(Serial.available() > 0)
               {
                 buff = Serial.parseFloat();
-                Serial.print("pan angle input"); Serial.println(buff);
+                //Serial.print("pan angle input"); Serial.println(buff);
                 input_data.user_angles.pan_angle = buff;
 
                 while (Serial.available()) {
@@ -225,7 +230,7 @@ void loop()
               if(Serial.available() > 0)
               {
                 buff = Serial.parseFloat();
-                Serial.print("tilt angle input"); Serial.println(buff);
+                //Serial.print("tilt angle input"); Serial.println(buff);
                 input_data.user_angles.tilt_angle = buff;
 
                 while (Serial.available()) {
