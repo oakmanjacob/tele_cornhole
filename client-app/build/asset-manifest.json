@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/static/css/main.72675ea7.css",
+    "main.js": "/static/js/main.53cf8d88.js",
+    "static/js/787.6b3e294a.chunk.js": "/static/js/787.6b3e294a.chunk.js",
+    "static/media/angle-control-bg.svg": "/static/media/angle-control-bg.16fb45b87b0dd42090f91149a3ed1bae.svg",
+    "index.html": "/index.html",
+    "static/media/angle-pointer.svg": "/static/media/angle-pointer.22ee4cab9bbed53f16b699a734469cc5.svg",
+    "main.72675ea7.css.map": "/static/css/main.72675ea7.css.map",
+    "main.53cf8d88.js.map": "/static/js/main.53cf8d88.js.map",
+    "787.6b3e294a.chunk.js.map": "/static/js/787.6b3e294a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.72675ea7.css",
+    "static/js/main.53cf8d88.js"
+  ]
+}

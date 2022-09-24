@@ -1,0 +1,57 @@
+:root {
+    /* Colors */
+    /*
+        background 1
+        background 2
+        gradient
+        font
+        font subtle
+        font error
+        cross-hairs
+        controls
+    */
+    --dcc-bg-0: #160f21;
+    --dcc-bg-1: #4b1c97;
+    --dcc-bg-2: #4158cc;
+
+    --dcc-bg-grad-0: radial-gradient(circle at 85% 135%, var(--dcc-bg-1, gray) -40%, var(--dcc-bg-0, black) 60%);
+    --dcc-bg-grad-1: radial-gradient(circle at 85% 135%, var(--dcc-bg-2, light-blue) -40%, var(--dcc-bg-1, gray) 60%);
+
+    --dcc-font-0: #ffffff;
+    --dcc-font-inv: var(--dcc-bg-0);
+
+    --dcc-crosshair-color: #ffffff;
+    --dcc-crosshair-opacity: 50%;
+
+    --dcc-meter-color: #ffffff;
+
+    --dcc-linear-power-color: #ffffff;
+
+    --dcc-axis-control-color: #00ff00;
+
+    /* Font sizes */
+    font-size: 24px;
+    --dcc-font-prog-scale: 1.5;
+    --dcc-font-size-p: 1rem;
+    --dcc-font-size-h6: 1rem;
+    --dcc-font-size-h5: calc(var(--dcc-font-size-h6) * var(--dcc-font-prog-scale));
+    --dcc-font-size-h4: calc(var(--dcc-font-size-h5) * var(--dcc-font-prog-scale));
+    --dcc-font-size-h3: calc(var(--dcc-font-size-h4) * var(--dcc-font-prog-scale));
+    --dcc-font-size-h2: calc(var(--dcc-font-size-h3) * var(--dcc-font-prog-scale));
+    --dcc-font-size-h1: calc(var(--dcc-font-size-h2) * var(--dcc-font-prog-scale));
+
+    /* Responsive scaling stuff */
+
+    /* Animation */
+    /*
+        ease-in
+        ease-out
+        ease
+    */
+}
+
+@media screen and (max-width: 1366px) {
+    :root {
+        font-size: 16px;
+    }
+}

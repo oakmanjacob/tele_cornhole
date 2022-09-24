@@ -1,0 +1,14 @@
+.control-container {
+    display: grid;
+    grid-template: 1fr / 1fr;
+    height: 100%;
+    width: 100%;
+    place-items: center;
+}
+
+.target-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}

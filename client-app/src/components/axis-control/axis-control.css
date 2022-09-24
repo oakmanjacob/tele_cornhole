@@ -1,0 +1,14 @@
+.axis-control {
+    background-color: var(--dcc-axis-control-color);
+    position: absolute;
+}
+
+.axis-control[data-orientation="Vertical"] {
+    width: 2px;
+    height: 100%;
+}
+
+.axis-control[data-orientation="Horizontal"] {
+    height: 2px;
+    width: 100%;
+}

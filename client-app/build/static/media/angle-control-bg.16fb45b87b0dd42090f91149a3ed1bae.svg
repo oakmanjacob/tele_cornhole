@@ -1,0 +1,11 @@
+<svg width="128" height="256" viewBox="0 0 128 256" xmlns="http://www.w3.org/2000/svg">
+    <!--def ticks-->
+    <path style="stroke: var(--dcc-axis-control-color)" d="M 64 124 L 64 132" fill="none" stroke-width="2" stroke-linecap="round" />
+    <!--arc-->
+    <path style="stroke: var(--dcc-crosshair-color)" d="M 32 128 A 124 124 30 0 1 96 128" stroke-width="2" stroke-linecap="round" fill="none" />
+    <path style="stroke: var(--dcc-crosshair-color)" d="M 32 128 L 64 248" stroke-width="2" stroke-linecap="round" fill="none" />
+    <path style="stroke: var(--dcc-crosshair-color)" d="M 96 128 L 64 248" stroke-width="2" stroke-linecap="round" fill="none" />
+    <!--render ticks-->
+    <!--center dial-->
+    <circle cx="64" cy="248" r="4" style="fill: var(--dcc-crosshair-color)" />
+</svg>
