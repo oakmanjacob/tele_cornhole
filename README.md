@@ -1,4 +1,12 @@
 # Classic Cornhole but With More Robots
+## Server development build instructions
+1. Install Python3
+2. run `pip install flask flask_cors flask_restful pyserial`
+3. Use Arduino IDE to figure out which com port the Arduino is on and change main.py accordingly
+4. Run main.py and this will output the ip and port of the running server which will need to be updated in client-app\src\components\control-overlay\control-overlay.tsx as the const baseURL
+
+### Important Note!
+This uses the same serial port connection that the Arduino IDE uses for flashing and otherwise communicating with the Arduino so you can't use both simultaniously.
 
 ## Client app development build instructions
 1. Download the latest version of [Node.js](https://nodejs.org/en/) following the installation instructions

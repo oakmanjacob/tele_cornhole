@@ -36,7 +36,7 @@ const degreesOfFreedom = [
     ControlEmbedding.Power
 ]
 
-const baseURL = 'http://10.39.90.14:5000';
+const baseURL = 'http://localhost:5000';
 
 export const ControlOverlay: React.FC = () => {
     const [iDOF, setIDOF] = useState(0);

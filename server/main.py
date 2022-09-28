@@ -15,11 +15,6 @@ arduino = serial.Serial(port='COM4', baudrate=115200, timeout=30)
 def render_page():
     return render_template("index.html")
 
-@app.route('/controller/<direction>', methods=['GET'])
-def hit_controller(direction):
-    arduino.write(bytes(direction, 'utf-8'))
-    return ""
-
 @app.route('/fire', methods=['GET'])
 def fire():
     arduino.reset_input_buffer()
@@ -27,11 +22,6 @@ def fire():
     time.sleep(0.05)
     data = arduino.read()
     return data
-
-@app.route('/zero', methods=['GET'])
-def zero_motor():
-    arduino.write(bytes('z', 'utf-8'))
-    return ""
 
 @app.route('/yrot/<angle>', methods=['GET'])
 def send_yrot(angle):
