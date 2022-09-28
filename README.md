@@ -1,4 +1,6 @@
 # Classic Cornhole but With More Robots
+We hacked together this project from an older project which had a basic gimbal with a t-shirt cannon. This was done using an Arduino Mega as the control board, an Adafruit Motor Shield v2.3 as the DC motor controller, a 9DoF Stick IMU and a stepper motor / driver.
+
 ## Server development build instructions
 1. Install Python3
 2. run `pip install flask flask_cors flask_restful pyserial`
